@@ -147,3 +147,35 @@ def test_safe_isclass():
             assert False, "Should be ignored"
 
     assert safe_isclass(CrappyClass()) is False
+
+
+def test_num_mock_patch_args_with_numpy_array():
+    """Test that num_mock_patch_args handles numpy arrays correctly when used as patch values."""
+    pytest.importorskip("numpy")
+    import numpy as np
+    from unittest.mock import patch
+    from _pytest.compat import num_mock_patch_args
+
+    # Test with numpy array as patch value - should not raise ValueError
+    @patch('os.path.exists', new=np.array([1, 2, 3]))
+    def func_with_array_patch():
+        pass
+
+    # Should not raise ValueError and should return 0 (no mock args since new is provided)
+    assert num_mock_patch_args(func_with_array_patch) == 0
+
+    # Test with normal patch - should return 1 (uses DEFAULT sentinel)
+    @patch('os.path.exists')
+    def func_with_normal_patch():
+        pass
+
+    assert num_mock_patch_args(func_with_normal_patch) == 1
+
+    # Test with mixed patches
+    @patch('os.path.exists')  # Uses DEFAULT
+    @patch('os.path.isfile', new=np.array([True, False]))  # Uses array
+    @patch('os.path.isdir', new=True)  # Uses regular value
+    def func_with_mixed_patches():
+        pass
+
+    assert num_mock_patch_args(func_with_mixed_patches) == 1
